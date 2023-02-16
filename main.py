@@ -16,7 +16,7 @@ import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
 from tensorflow.keras.models import Sequential, model_from_json
 import os.path
-
+from sklearn.preprocessing import normalize
 
 train_human = 'data/train/human/'
 train_anime = 'data/train/anime/'
@@ -26,32 +26,43 @@ def load_image(img_path):
 
 images=[]
 img_labels=[]
-
+#human=0
+#anime=1
+#cartoon=2
 def load_all_images():
     size = (32, 32)
+
     for img_name in os.listdir(train_human):
         img_path = os.path.join(train_human, img_name)
         img = load_image(img_path)
         #img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         img=cv2.resize(img, size)
-
+        img = np.asarray(img)
+        img = img.astype('float32')
+        img = img / 255
         images.append(img)
-        img_labels.append('human')
+        img_labels.append(0)
 
     for img_name in os.listdir(train_anime):
         img_path = os.path.join(train_anime, img_name)
         img = load_image(img_path)
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img = cv2.resize(img, size)
+        img = np.asarray(img)
+        img = img.astype('float32')
+        img = img / 255
         images.append(img)
-        img_labels.append('anime')
+        img_labels.append(1)
     for img_name in os.listdir(train_cartoon):
         img_path = os.path.join(train_cartoon, img_name)
         img = load_image(img_path)
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = np.asarray(img)
+        img = img.astype('float32')
+        img = img / 255
         img = cv2.resize(img, size)
         images.append(img)
-        img_labels.append('cartoon')
+        img_labels.append(2)
 
 
 def extract_faces(img): #NOT WORKING za anime i cartoon
@@ -209,13 +220,23 @@ def train_cnn():
     (train_images, test_images, train_labels, test_labels) = train_test_split(
         images,img_labels, test_size=0.25, random_state=42)
 
-    #train_images=np.array(train_images)
-    #test_images=np.array(test_images)
+    train_images=np.asarray(train_images)
+    test_images=np.asarray(test_images)
+    train_labels=np.asarray(train_labels)
+    test_labels=np.asarray(test_labels)
 
     #OVDE JE PROBLEM
+    #train_images, test_images = train_images / 255.0, test_images / 255.0
+    print(train_images.shape)
+    print(train_images.dtype)
+    print(test_images.shape)
 
-    history = model.fit(train_images, train_labels, epochs=10,
-                        validation_data=(test_images, test_labels))
+    normalized_train = (train_images - np.amin(train_images)) / (np.amax(train_images) - np.amin(train_images))
+    normalized_test = (test_images - np.amin(test_images)) / (np.amax(test_images) - np.amin(test_images))
+
+
+    history = model.fit(normalized_train,train_labels , epochs=10,
+                        validation_data=(normalized_test, test_labels))
     serialize_cnn(model)
 
 def compile_model():
