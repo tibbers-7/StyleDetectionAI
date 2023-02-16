@@ -14,6 +14,8 @@ import imutils
 import dlib
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
+from tensorflow.keras.models import Sequential, model_from_json
+import os.path
 
 
 train_human = 'data/train/human/'
@@ -171,18 +173,42 @@ def setup_cnn():
 
     model.summary()
 
-    #sada mozemo dodati skriveni layer sa 64 neurona
+def serialize_cnn(model):
+    # serialize model to JSON
+    model_json = model.to_json()
+    with open("model.json", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    model.save_weights("model.h5")
+    print("Saved model to disk")
+
+def train_cnn():
+    print('usao')
+    load_all_images()
+    (train_images, test_images) = train_test_split(
+        images, test_size=0.25, random_state=42)
+    history = model.fit(train_images, class_names, epochs=10,
+                        validation_data=(test_images, class_names),
+                        )
+    serialize_cnn(model)
 
 def compile_model():
+    if(os.path.isfile('model.json')):
+        json_file = open('model.json', 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        loaded_model = model_from_json(loaded_model_json)
+        # load weights into new model
+        loaded_model.load_weights("model.h5")
+        print("Loaded model from disk")
+
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
 
-    load_all_images()
-    (train_images, test_images) = train_test_split(
-        train_rawImages, test_size=0.25, random_state=42)
-    history = model.fit(train_images, class_names, epochs=10,
-                        validation_data=(test_images, test_labels))
+
+
+
 def main():
 
     # prikaz vecih slika
@@ -194,6 +220,7 @@ def main():
     if(option!=0):
         setup_cnn()
         compile_model()
+        train_cnn()
     else:
         train_knn()
 
