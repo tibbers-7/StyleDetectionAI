@@ -30,16 +30,19 @@ def load_all_images():
     for img_name in os.listdir(train_human):
         img_path = os.path.join(train_human, img_name)
         img = load_image(img_path)
+        img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         images.append(img)
         img_labels.append('human')
     for img_name in os.listdir(train_anime):
         img_path = os.path.join(train_anime, img_name)
         img = load_image(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         images.append(img)
         img_labels.append('anime')
     for img_name in os.listdir(train_cartoon):
         img_path = os.path.join(train_cartoon, img_name)
         img = load_image(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         images.append(img)
         img_labels.append('cartoon')
 
@@ -201,7 +204,7 @@ def train_cnn():
     #train_images, test_images = train_images / 255.0, test_images / 255.0
 
     print("Train images "+str(len(train_images)))
-    print("Train labels "+str(len(train_labels.size)))
+    print("Train labels "+str(len(train_labels)))
     print("Test images "+str(len(test_images)))
     print("Test labels "+str(len(test_labels)))
     history = model.fit(train_images, train_labels, epochs=10,
