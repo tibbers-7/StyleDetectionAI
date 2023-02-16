@@ -12,15 +12,33 @@ from imutils import face_utils
 import argparse
 import imutils
 import dlib
+import tensorflow as tf
+from tensorflow.keras import datasets, layers, models
 
+
+train_human = 'data/train/human/'
+train_anime = 'data/train/anime/'
+train_cartoon = 'data/train/cartoon/'
 def load_image(img_path):
     return cv2.cvtColor(cv2.imread(img_path),cv2.COLOR_BGR2RGB)
 
+images=[]
+def load_all_images():
+    for img_name in os.listdir(train_human):
+        img_path = os.path.join(train_human, img_name)
+        img = load_image(img_path)
+        images.append(img)
+    for img_name in os.listdir(train_anime):
+        img_path = os.path.join(train_anime, img_name)
+        img = load_image(img_path)
+        images.append(img)
+    for img_name in os.listdir(train_cartoon):
+        img_path = os.path.join(train_cartoon, img_name)
+        img = load_image(img_path)
+        images.append(img)
 
 def extract_faces(img): #NOT WORKING
-    # inicijalizaclija dlib detektora (HOG)
     detector = dlib.get_frontal_face_detector()
-    # ucitavanje pretreniranog modela za prepoznavanje karakteristicnih tacaka
     predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 
     # ucitavanje i transformacija slike
@@ -68,19 +86,15 @@ def image_to_feature_vector(image, size=(32, 32)):
 	return cv2.resize(image, size).flatten()
 
 def extract_color_histogram(image, bins=(8, 8, 8)):
-	# extract a 3D color histogram from the HSV color space using
-	# the supplied number of `bins` per channel
+	# extract a 3D color histogram from the HSV color space using the supplied number of `bins` per channel
 	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 	hist = cv2.calcHist([hsv], [0, 1, 2], None, bins,
 		[0, 180, 0, 256, 0, 256])
-	# handle normalizing the histogram if we are using OpenCV 2.4.X
+	# nesto oko verzija opencv
 	if imutils.is_cv2():
 		hist = cv2.normalize(hist)
-	# otherwise, perform "in place" normalization in OpenCV 3 (I
-	# personally hate the way this is done
 	else:
 		cv2.normalize(hist, hist)
-	# return the flattened histogram as the feature vector
 	return hist.flatten()
 
 
@@ -94,28 +108,25 @@ def attach_information_images(datapath,label):
         img_path = os.path.join(datapath, img_name)
         img = load_image(img_path)
         train_labels.append(label)
-        # extract raw pixel intensity "features", followed by a color
+        # extract raw pixel intensity features, followed by a color
         # histogram to characterize the color distribution of the pixels
         train_rawImages.append(image_to_feature_vector(img))
         train_features.append(extract_color_histogram(img))
         if i > 0 and i % 200 == 0:
-            print("[INFO] processed " + str(i) + " humans")
+            print("[INFO] processed " + str(i) + " "+label+"s")
         # plt.imshow(img)
         # plt.show()
 
 
 def train_knn():
 
-    train_human = 'data/train/human/'
-    train_anime = 'data/train/anime/'
-    train_cartoon = 'data/train/cartoon/'
+
 
     attach_information_images(train_human,'human')
     attach_information_images(train_anime,'anime')
     attach_information_images(train_cartoon,'cartoon')
 
-    # partition the data into training and testing splits, using 75%
-    # of the data for training and the remaining 25% for testing
+    # particionisanje podataka, 75% trening 25% test
     (trainRI, testRI, trainRL, testRL) = train_test_split(
         train_rawImages, train_labels, test_size=0.25, random_state=42)
     (trainFeat, testFeat, trainLabels, testLabels) = train_test_split(
@@ -141,7 +152,37 @@ def train_knn():
     acc = model.score(testFeat, testLabels)
     print("[INFO] histogram accuracy: {:.2f}%".format(acc * 100))
 
+class_names = ['human','anime','cartoon']
+model = models.Sequential()
+def setup_cnn():
 
+    #Convolutional Layer uses first 32 and then 64 filters with a 3×3 kernel as a filter
+    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+    model.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    #Max Pooling Layer searches for the maximum value within a 2×2 matrix.
+    model.add(layers.MaxPooling2D((2, 2)))
+
+    #smanjujemo dimenzije
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.Flatten())
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(10))
+
+    model.summary()
+
+    #sada mozemo dodati skriveni layer sa 64 neurona
+
+def compile_model():
+    model.compile(optimizer='adam',
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
+
+    load_all_images()
+    (train_images, test_images) = train_test_split(
+        train_rawImages, test_size=0.25, random_state=42)
+    history = model.fit(train_images, class_names, epochs=10,
+                        validation_data=(test_images, test_labels))
 def main():
 
     # prikaz vecih slika
@@ -151,8 +192,8 @@ def main():
     print('Train = 0; Test = 1')
     option=int(input())
     if(option!=0):
-        #test
-        print('nema josh')
+        setup_cnn()
+        compile_model()
     else:
         train_knn()
 
