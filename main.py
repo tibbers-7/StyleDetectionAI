@@ -197,7 +197,7 @@ def setup_cnn():
     model.add(layers.Conv2D(64, (3, 3), activation='relu'))
     model.add(layers.Flatten())
     model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.Dense(10))
+    model.add(layers.Dense(3))
 
     model.summary()
 
@@ -261,6 +261,8 @@ def predict(img_path):
     assert img.ndim == 3
     img = np.expand_dims(img, axis=0)  # Alternatively could do: img[None, ...]
     assert img.ndim == 4
+    res_vals=model.predict(img,batch_size=1)
+    print(res_vals)
     res=model.predict_classes(img,batch_size=1)
     print(res)
     if (res==0):
@@ -278,24 +280,27 @@ def main():
     # prikaz vecih slika
     matplotlib.rcParams['figure.figsize'] = 16, 12
 
-    print('Enter option:\n')
-    print('KNN = 0; train CNN = 1; test CNN = 2')
-    option=int(input())
 
-    if option==0:
-        train_knn()
-    if option==1:
-        setup_cnn()
-        compile_model()
-        train_cnn()
-    elif option==2:
-        setup_cnn()
-        compile_model()
-        print('Input name of file you wish to predict:')
-        filename=input()
-        filepath='data/test/'+filename
-        print(filepath)
-        print(predict(filepath))
+    option=100000
+
+    while option!=-1:
+        print('Enter option:')
+        print('KNN = 0; train CNN = 1; test CNN = 2; EXIT = -1')
+        option = int(input())
+        if option==0:
+            train_knn()
+        if option==1:
+            setup_cnn()
+            compile_model()
+            train_cnn()
+        elif option==2:
+            setup_cnn()
+            compile_model()
+            print('Input name of file you wish to predict:')
+            filename=input()
+            filepath='data/test/'+filename
+            print(filepath)
+            print(predict(filepath))
 
 
 
