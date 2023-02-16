@@ -84,30 +84,27 @@ def extract_color_histogram(image, bins=(8, 8, 8)):
 	return hist.flatten()
 
 
-rawImages = []
-features = []
-labels = []
+train_rawImages = []
+train_features = []
+train_labels = []
 def attach_information_images(datapath,label):
     i = 0
     for img_name in os.listdir(datapath):
         i = i + 1
         img_path = os.path.join(datapath, img_name)
         img = load_image(img_path)
-        labels.append(label)
+        train_labels.append(label)
         # extract raw pixel intensity "features", followed by a color
         # histogram to characterize the color distribution of the pixels
-        rawImages.append(image_to_feature_vector(img))
-        features.append(extract_color_histogram(img))
+        train_rawImages.append(image_to_feature_vector(img))
+        train_features.append(extract_color_histogram(img))
         if i > 0 and i % 200 == 0:
-            print("[INFO] processed " + i + " humans")
+            print("[INFO] processed " + str(i) + " humans")
         # plt.imshow(img)
         # plt.show()
-        break
+
 
 def train_knn():
-    # initialize the raw pixel intensities matrix, the features matrix,
-    # and labels list
-
 
     train_human = 'data/train/human/'
     train_anime = 'data/train/anime/'
@@ -117,7 +114,32 @@ def train_knn():
     attach_information_images(train_anime,'anime')
     attach_information_images(train_cartoon,'cartoon')
 
+    # partition the data into training and testing splits, using 75%
+    # of the data for training and the remaining 25% for testing
+    (trainRI, testRI, trainRL, testRL) = train_test_split(
+        train_rawImages, train_labels, test_size=0.25, random_state=42)
+    (trainFeat, testFeat, trainLabels, testLabels) = train_test_split(
+        train_features, train_labels, test_size=0.25, random_state=42)
 
+    # krece trening raw
+    neighbors=1
+    jobs=-1 #upotrebljavamo sva jezgra procesora computing power goes brrrr
+    print("[INFO] evaluating raw pixel accuracy...")
+    model = KNeighborsClassifier(n_neighbors=neighbors,
+                                 n_jobs=jobs)
+    model.fit(trainRI, trainRL)
+    acc = model.score(testRI, testRL)
+    print("[INFO] raw pixel accuracy: {:.2f}%".format(acc * 100))
+
+    # trening histogrami
+    # train and evaluate a k-NN classifer on the histogram
+    # representations
+    print("[INFO] evaluating histogram accuracy...")
+    model = KNeighborsClassifier(n_neighbors=neighbors,
+                                 n_jobs=jobs)
+    model.fit(trainFeat, trainLabels)
+    acc = model.score(testFeat, testLabels)
+    print("[INFO] histogram accuracy: {:.2f}%".format(acc * 100))
 
 
 def main():
