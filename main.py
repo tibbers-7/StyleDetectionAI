@@ -26,27 +26,35 @@ def load_image(img_path):
 
 images=[]
 img_labels=[]
+
 def load_all_images():
+    size = (32, 32)
     for img_name in os.listdir(train_human):
         img_path = os.path.join(train_human, img_name)
         img = load_image(img_path)
-        img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        #img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        img=cv2.resize(img, size)
+
         images.append(img)
         img_labels.append('human')
+
     for img_name in os.listdir(train_anime):
         img_path = os.path.join(train_anime, img_name)
         img = load_image(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.resize(img, size)
         images.append(img)
         img_labels.append('anime')
     for img_name in os.listdir(train_cartoon):
         img_path = os.path.join(train_cartoon, img_name)
         img = load_image(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.resize(img, size)
         images.append(img)
         img_labels.append('cartoon')
 
-def extract_faces(img): #NOT WORKING
+
+def extract_faces(img): #NOT WORKING za anime i cartoon
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 
@@ -197,19 +205,17 @@ def serialize_cnn(model):
 def train_cnn():
     load_all_images()
 
-    #ovo bi trebalo da je batch dimenzija al nmp de mi je Conv2D
-    #tf.convert_to_tensor(images)
+    #fali batch dimenzija
     (train_images, test_images, train_labels, test_labels) = train_test_split(
         images,img_labels, test_size=0.25, random_state=42)
-    #train_images, test_images = train_images / 255.0, test_images / 255.0
 
-    print("Train images "+str(len(train_images)))
-    print("Train labels "+str(len(train_labels)))
-    print("Test images "+str(len(test_images)))
-    print("Test labels "+str(len(test_labels)))
+    #train_images=np.array(train_images)
+    #test_images=np.array(test_images)
+
+    #OVDE JE PROBLEM
+
     history = model.fit(train_images, train_labels, epochs=10,
-                        validation_data=(test_images, test_labels),
-                        )
+                        validation_data=(test_images, test_labels))
     serialize_cnn(model)
 
 def compile_model():
