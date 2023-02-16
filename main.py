@@ -12,7 +12,6 @@ from imutils import face_utils
 import argparse
 import imutils
 import dlib
-import dlib_train
 
 def load_image(img_path):
     return cv2.cvtColor(cv2.imread(img_path),cv2.COLOR_BGR2RGB)
@@ -64,42 +63,79 @@ def extract_faces(img): #NOT WORKING
         plt.show()
 
 
+def image_to_feature_vector(image, size=(32, 32)):
+    #output feature vector will be a list of 32 x 32 x 3 = 3,072 numbers.
+	return cv2.resize(image, size).flatten()
+
+def extract_color_histogram(image, bins=(8, 8, 8)):
+	# extract a 3D color histogram from the HSV color space using
+	# the supplied number of `bins` per channel
+	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+	hist = cv2.calcHist([hsv], [0, 1, 2], None, bins,
+		[0, 180, 0, 256, 0, 256])
+	# handle normalizing the histogram if we are using OpenCV 2.4.X
+	if imutils.is_cv2():
+		hist = cv2.normalize(hist)
+	# otherwise, perform "in place" normalization in OpenCV 3 (I
+	# personally hate the way this is done
+	else:
+		cv2.normalize(hist, hist)
+	# return the flattened histogram as the feature vector
+	return hist.flatten()
+
+
+rawImages = []
+features = []
+labels = []
+def attach_information_images(datapath,label):
+    i = 0
+    for img_name in os.listdir(datapath):
+        i = i + 1
+        img_path = os.path.join(datapath, img_name)
+        img = load_image(img_path)
+        labels.append(label)
+        # extract raw pixel intensity "features", followed by a color
+        # histogram to characterize the color distribution of the pixels
+        rawImages.append(image_to_feature_vector(img))
+        features.append(extract_color_histogram(img))
+        if i > 0 and i % 200 == 0:
+            print("[INFO] processed " + i + " humans")
+        # plt.imshow(img)
+        # plt.show()
+        break
+
+def train_knn():
+    # initialize the raw pixel intensities matrix, the features matrix,
+    # and labels list
+
+
+    train_human = 'data/train/human/'
+    train_anime = 'data/train/anime/'
+    train_cartoon = 'data/train/cartoon/'
+
+    attach_information_images(train_human,'human')
+    attach_information_images(train_anime,'anime')
+    attach_information_images(train_cartoon,'cartoon')
+
+
+
 
 def main():
 
     # prikaz vecih slika
     matplotlib.rcParams['figure.figsize'] = 16, 12
 
-    train_human = 'data/train/human/'
-    train_anime = 'data/train/anime/'
-    train_cartoon = 'data/train/cartoon/'
-
-    human_imgs = []
-    anime_imgs = []
-    cartoon_imgs = []
-
-    for img_name in os.listdir(train_human):
-        img_path = os.path.join(train_human, img_name)
-        img = load_image(img_path)
-        print('human')
-        human_imgs.append(img)
-        extract_faces(img)
-        break
-
-    for img_name in os.listdir(train_anime):
-        img_path = os.path.join(train_anime, img_name)
-        img = load_image(img_path)
-        print('anime')
-        anime_imgs.append(img)
-        extract_faces(img)
+    print('Enter option:\n')
+    print('Train = 0; Test = 1')
+    option=int(input())
+    if(option!=0):
+        #test
+        print('nema josh')
+    else:
+        train_knn()
 
 
-    for img_name in os.listdir(train_cartoon):
-        img_path = os.path.join(train_cartoon, img_name)
-        img = load_image(img_path)
-        print('cartoon')
-        cartoon_imgs.append(img)
-        extract_faces(img)
+
 
 
 if __name__ == "__main__":
