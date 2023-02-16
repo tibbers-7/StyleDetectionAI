@@ -21,48 +21,50 @@ from sklearn.preprocessing import normalize
 train_human = 'data/train/human/'
 train_anime = 'data/train/anime/'
 train_cartoon = 'data/train/cartoon/'
+test_path = 'data/test'
 def load_image(img_path):
     return cv2.cvtColor(cv2.imread(img_path),cv2.COLOR_BGR2RGB)
 
-images=[]
-img_labels=[]
+train_imgs=[]
+train_labelss=[]
+test_imgs=[]
+test_labelss=[]
 #human=0
 #anime=1
 #cartoon=2
+
+def load_imgs(label,type):
+    size = (32, 32)
+    dir=''
+    if(label==0):dir=train_human
+    elif(label==1):dir=train_anime
+    elif(label==2):dir=train_cartoon
+
+    for img_name in os.listdir(dir):
+        img_path = os.path.join(dir, img_name)
+        img = load_image(img_path)
+        # img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        img = cv2.resize(img, size)
+        img = np.asarray(img)
+        img = img.astype('float32')
+        img = img / 255
+        if(type==0):
+            train_imgs.append(img)
+            train_labelss.append(label)
+        elif(type==1):
+            test_imgs.append(img)
+            test_labelss.append(label)
+
 def load_all_images():
     size = (32, 32)
 
-    for img_name in os.listdir(train_human):
-        img_path = os.path.join(train_human, img_name)
-        img = load_image(img_path)
-        #img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        img=cv2.resize(img, size)
-        img = np.asarray(img)
-        img = img.astype('float32')
-        img = img / 255
-        images.append(img)
-        img_labels.append(0)
+    load_imgs(0,0)
+    load_imgs(1,0)
+    load_imgs(2,0)
 
-    for img_name in os.listdir(train_anime):
-        img_path = os.path.join(train_anime, img_name)
-        img = load_image(img_path)
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.resize(img, size)
-        img = np.asarray(img)
-        img = img.astype('float32')
-        img = img / 255
-        images.append(img)
-        img_labels.append(1)
-    for img_name in os.listdir(train_cartoon):
-        img_path = os.path.join(train_cartoon, img_name)
-        img = load_image(img_path)
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = np.asarray(img)
-        img = img.astype('float32')
-        img = img / 255
-        img = cv2.resize(img, size)
-        images.append(img)
-        img_labels.append(2)
+    load_imgs(0, 1)
+    load_imgs(1, 1)
+    load_imgs(2, 1)
 
 
 def extract_faces(img): #NOT WORKING za anime i cartoon
@@ -187,9 +189,9 @@ model = models.Sequential()
 def setup_cnn():
 
     #Convolutional Layer uses first 32 and then 64 filters with a 3×3 kernel as a filter
-    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+    model.add(layers.Conv2D(16, (3, 3), activation='relu', input_shape=(32, 32, 3)))
     model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.Conv2D(32, (3, 3), activation='relu'))
     #Max Pooling Layer searches for the maximum value within a 2×2 matrix.
     model.add(layers.MaxPooling2D((2, 2)))
 
@@ -197,7 +199,8 @@ def setup_cnn():
     model.add(layers.Conv2D(64, (3, 3), activation='relu'))
     model.add(layers.Flatten())
     model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.Dense(3))
+    model.add(layers.Dropout(0.3))
+    model.add(layers.Dense(3,activation='sigmoid'))
 
     model.summary()
 
@@ -214,15 +217,14 @@ def train_cnn():
     load_all_images()
 
     #fali batch dimenzija
-    (train_images, test_images, train_labels, test_labels) = train_test_split(
-        images,img_labels, test_size=0.25, random_state=42)
+    #(train_images, test_images, train_labels, test_labels) = train_test_split(
+    #    train_imgs,train_labelss, test_size=0.25, random_state=42)
 
-    train_images=np.asarray(train_images)
-    test_images=np.asarray(test_images)
-    train_labels=np.asarray(train_labels)
-    test_labels=np.asarray(test_labels)
+    train_images=np.asarray(train_imgs)
+    test_images=np.asarray(test_imgs)
+    train_labels=np.asarray(train_labelss)
+    test_labels=np.asarray(test_labelss)
 
-    #OVDE JE PROBLEM
     #train_images, test_images = train_images / 255.0, test_images / 255.0
     print(train_images.shape)
     print(train_images.dtype)
