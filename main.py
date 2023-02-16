@@ -158,6 +158,11 @@ def train_knn():
     acc = model.score(testFeat, testLabels)
     print("[INFO] histogram accuracy: {:.2f}%".format(acc * 100))
 
+
+
+
+############################################################################
+## CNN ##
 class_names = ['human','anime','cartoon']
 model = models.Sequential()
 def setup_cnn():
@@ -188,8 +193,17 @@ def serialize_cnn(model):
 
 def train_cnn():
     load_all_images()
+
+    #ovo bi trebalo da je batch dimenzija al nmp de mi je Conv2D
+    #tf.convert_to_tensor(images)
     (train_images, test_images, train_labels, test_labels) = train_test_split(
         images,img_labels, test_size=0.25, random_state=42)
+    #train_images, test_images = train_images / 255.0, test_images / 255.0
+
+    print("Train images "+str(len(train_images)))
+    print("Train labels "+str(len(train_labels.size)))
+    print("Test images "+str(len(test_images)))
+    print("Test labels "+str(len(test_labels)))
     history = model.fit(train_images, train_labels, epochs=10,
                         validation_data=(test_images, test_labels),
                         )
