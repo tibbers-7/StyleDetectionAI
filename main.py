@@ -25,19 +25,23 @@ def load_image(img_path):
     return cv2.cvtColor(cv2.imread(img_path),cv2.COLOR_BGR2RGB)
 
 images=[]
+img_labels=[]
 def load_all_images():
     for img_name in os.listdir(train_human):
         img_path = os.path.join(train_human, img_name)
         img = load_image(img_path)
         images.append(img)
+        img_labels.append('human')
     for img_name in os.listdir(train_anime):
         img_path = os.path.join(train_anime, img_name)
         img = load_image(img_path)
         images.append(img)
+        img_labels.append('anime')
     for img_name in os.listdir(train_cartoon):
         img_path = os.path.join(train_cartoon, img_name)
         img = load_image(img_path)
         images.append(img)
+        img_labels.append('cartoon')
 
 def extract_faces(img): #NOT WORKING
     detector = dlib.get_frontal_face_detector()
@@ -183,12 +187,11 @@ def serialize_cnn(model):
     print("Saved model to disk")
 
 def train_cnn():
-    print('usao')
     load_all_images()
-    (train_images, test_images) = train_test_split(
-        images, test_size=0.25, random_state=42)
-    history = model.fit(train_images, class_names, epochs=10,
-                        validation_data=(test_images, class_names),
+    (train_images, test_images, train_labels, test_labels) = train_test_split(
+        images,img_labels, test_size=0.25, random_state=42)
+    history = model.fit(train_images, train_labels, epochs=10,
+                        validation_data=(test_images, test_labels),
                         )
     serialize_cnn(model)
 
@@ -215,14 +218,16 @@ def main():
     matplotlib.rcParams['figure.figsize'] = 16, 12
 
     print('Enter option:\n')
-    print('Train = 0; Test = 1')
+    print('KNN = 0; CNN = 1')
     option=int(input())
-    if(option!=0):
+
+    if option==0:
+        train_knn()
+    if option==1:
         setup_cnn()
         compile_model()
         train_cnn()
-    else:
-        train_knn()
+
 
 
 
