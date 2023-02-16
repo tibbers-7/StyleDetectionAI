@@ -69,9 +69,7 @@ def extract_faces(img): #NOT WORKING za anime i cartoon
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 
-    # ucitavanje i transformacija slike
     image = img
-
     # NE TREBA MI GREYSCALE
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -114,7 +112,6 @@ def image_to_feature_vector(image, size=(32, 32)):
 	return cv2.resize(image, size).flatten()
 
 def extract_color_histogram(image, bins=(8, 8, 8)):
-	# extract a 3D color histogram from the HSV color space using the supplied number of `bins` per channel
 	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 	hist = cv2.calcHist([hsv], [0, 1, 2], None, bins,
 		[0, 180, 0, 256, 0, 256])
@@ -254,6 +251,26 @@ def compile_model():
                   metrics=['accuracy'])
 
 
+def predict(img_path):
+    size = (32, 32)
+    img = load_image(img_path)
+    img = cv2.resize(img, size)
+    img = np.asarray(img)
+    img = img.astype('float32')
+    img = img / 255
+    assert img.ndim == 3
+    img = np.expand_dims(img, axis=0)  # Alternatively could do: img[None, ...]
+    assert img.ndim == 4
+    res=model.predict_classes(img,batch_size=1)
+    print(res)
+    if (res==0):
+        return 'human'
+    elif(res==1):
+        return 'anime'
+    elif(res==2):
+        return 'cartoon'
+    else:
+        return 'UNKNOWN'
 
 
 def main():
@@ -262,7 +279,7 @@ def main():
     matplotlib.rcParams['figure.figsize'] = 16, 12
 
     print('Enter option:\n')
-    print('KNN = 0; CNN = 1')
+    print('KNN = 0; train CNN = 1; test CNN = 2')
     option=int(input())
 
     if option==0:
@@ -271,6 +288,16 @@ def main():
         setup_cnn()
         compile_model()
         train_cnn()
+    elif option==2:
+        setup_cnn()
+        compile_model()
+        print('Input name of file you wish to predict:')
+        filename=input()
+        filepath='data/test/'+filename
+        print(filepath)
+        print(predict(filepath))
+
+
 
 
 
